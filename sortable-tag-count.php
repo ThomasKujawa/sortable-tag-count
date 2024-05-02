@@ -3,9 +3,9 @@
  * Plugin Name: Sortable Tag Count
  * Plugin URI: https://www.fachkraeftesicherer.de
  * Description: Adds a sortable column to the posts and pages admin with the tag count.
- * Author: <a href="https://thomas.fachkraeftesicherer.de" target="_blank">Thomas</a> und <a href="https://www.thomaszwirner.de/" target="_blank">Thomas</a>
+ * Author: Thomas Kujawa,Thomas Zwirner
  * Author URI: https://thomas.fachkraeftesicherer.de
- * Version: 1.0.3
+ * Version: 1.0.0
  * Requires PHP: 8.0
  * Text Domain: sortable-tag-count
  * Domain Path: /languages
