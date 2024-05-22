@@ -4,8 +4,8 @@ Tags: tags, sortable column, backend
 Requires at least: 6.0
 Tested up to: 6.5.2
 Requires PHP: 8.0
-License: GPL-2.0-or-later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+License: GPL-3.0
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Stable tag: 1.0.0
 
 This plugin adds a sortable column is added to the admin overview of posts and pages. This contains the number of tags assigned in each case.
@@ -18,5 +18,7 @@ This plugin adds a sortable column is added to the admin overview of posts and p
 
 == Changelog ==
 
+= 1.0.1 =
+* License Update
 = 1.0.0 =
 * Initial release
