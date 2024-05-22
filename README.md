@@ -2,7 +2,7 @@
 
 Stable tag:
 Tested up to:
-License: GPL v2 or later  
+License: GPL v3 
 Tags: 
 Contributors:
 Donate link:
@@ -11,25 +11,14 @@ Donate link:
 
 ### Features
 
- * 
-
-Note: 
-
-### Security
-
- *
-
 ### Usage
-
-
-### Privacy Statement
-
 
 ### Accessibility Statement
 
 ## Screenshots
 
 1. 
+2.
 
 ## Frequently Asked Questions
 
