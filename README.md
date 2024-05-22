@@ -1,13 +1,23 @@
 # Sortable-Tag-Count
 
-Stable tag:
-Tested up to:
-License: GPL v3 
-Tags: 
-Contributors:
+Stable tag: 1.0.1
+
+Tested up to: 6.5.2
+
+License: GPL v3
+
+Tags: tags, sortable column, backend
+
+Contributors: thomaskujawa, threadi
+
 Donate link:
 
+
 ## Description
+
+## Why?
+
+
 
 ### Features
 
