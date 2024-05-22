@@ -10,14 +10,11 @@ Tags: tags, sortable column, backend
 
 Contributors: thomaskujawa, threadi
 
-Donate link:
+Donate link: https://www.paypal.me/ThomasKujawa
 
+## Why? 
 
 ## Description
-
-## Why?
-
-
 
 ### Features
 
@@ -26,9 +23,6 @@ Donate link:
 ### Accessibility Statement
 
 ## Screenshots
-
-1. 
-2.
 
 ## Frequently Asked Questions
 
