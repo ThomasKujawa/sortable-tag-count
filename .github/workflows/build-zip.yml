@@ -1,9 +1,7 @@
 name: Build release zip
 
 on:
-  push:
-    branches:
-      - trunk
+  workflow_dispatch
 
 jobs:
   build:
