@@ -17,11 +17,6 @@
 // prevent direct access.
 defined( 'ABSPATH' ) || exit;
 
-// Don't run if not admin page.
-if ( ! is_admin() ) {
-	return;
-}
-
 /**
  * Define variable.
  */
