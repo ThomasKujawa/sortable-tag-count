@@ -5,195 +5,156 @@
  * Description: Adds a sortable column to the posts and pages admin with the tag count.
  * Author: Thomas Kujawa,Thomas Zwirner
  * Author URI: https://thomas.fachkraeftesicherer.de
- * Version: 1.0.0
- * Requires PHP: 8.0
- * Text Domain: sortable-tag-count
- * Domain Path: /languages
  * License: GPL v3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
+ * Version: 1.1.0
+ * Requires PHP: 8.0
+ * Text Domain: sortable-tag-count
  *
  * @package sortable-tag-count
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-} // Exit if accessed directly
+// prevent direct access.
+defined( 'ABSPATH' ) || exit;
 
+// Don't run if not admin page.
 if ( ! is_admin() ) {
-	return false;
-} // Don't run if not admin page
+	return;
+}
 
 /**
- * Define variables
+ * Define variable.
  */
-define( 'FKS_STC_META_FIELD_KEY', 'fks_stc_meta_tag_count' );
-define( 'FKS_STC_OPTION_FIELD_KEY', 'fks_stc_option_tag_count' );
+const FKS_STC_META_FIELD_KEY = 'fks_stc_meta_tag_count';
+
+/**
+ * Run on plugin activation.
+ */
+function fks_stc_sortable_tag_count_activation(): void {
+	$query   = array(
+		'post_type'      => fks_stc_get_supported_post_types(),
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+	);
+	$results = new WP_Query( $query );
+	foreach ( $results->posts as $post_id ) {
+		fks_stc_update_post_tc_value( $post_id );
+	}
+}
+register_activation_hook( __FILE__, 'fks_stc_sortable_tag_count_activation' );
+
+/**
+ * Initialize the plugin on every request.
+ */
+fks_stc_sortable_tag_count_init();
 
 /**
  * Initialize the plugin.
  */
-fks_stc_sortable_tag_count_run();
+function fks_stc_sortable_tag_count_init(): void {
+	// Update objects tag count if post_tag gets deleted.
+	add_action( 'delete_post_tag', 'fks_stc_delete_term_tc_value', 10, 0 );
 
-/**
- * Deactivate plugin
- *
- * @return void
- */
-function fks_stc_deactivation(): void {
-	if ( ! current_user_can( 'activate_plugins' ) ) {
-		return;
+	// add save and show actions to each supported post type.
+	foreach ( fks_stc_get_supported_post_types() as $post_type ) {
+		add_action( 'save_post_' . $post_type, 'fks_stc_update_post_tc_value' );
+		add_filter( 'manage_' . $post_type . '_posts_columns', 'fks_stc_add_tc_column_table_head' );
+		add_action( 'manage_' . $post_type . '_posts_custom_column', 'fks_stc_add_tc_column_table_content', 10, 2 );
+		add_filter( 'manage_edit-' . $post_type . '_sortable_columns', 'fks_stc_add_tc_table_sorting' );
 	}
 
-	$plugin = isset( $_REQUEST['plugin'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['plugin'] ) ) : '';
-	check_admin_referer( "deactivate-plugin_{$plugin}" );
-
-	// Delete counter marker option.
-	delete_option( FKS_STC_OPTION_FIELD_KEY );
-}
-register_deactivation_hook( __FILE__, 'fks_stc_deactivation' );
-
-/**
- * Init plugin
- */
-function fks_stc_sortable_tag_count_run(): void {
-	// Update posts/pages tag count.
-	add_action( 'init', 'fks_stc_update_posts_tc_value' );
-
-	// Add columns.
-	add_filter( 'manage_posts_columns', 'fks_stc_add_tc_column_table_head' );
-	add_filter( 'manage_page_posts_columns', 'fks_stc_add_tc_column_table_head' );
-
-	// Fill tag count value.
-	add_action( 'manage_posts_custom_column', 'fks_stc_add_tc_column_table_content', 10, 2 );
-	add_action( 'manage_page_posts_custom_column', 'fks_stc_add_tc_column_table_content', 10, 2 );
-
-	// Enable sorting for columns.
-	add_filter( 'manage_edit-post_sortable_columns', 'fks_stc_add_tc_table_sorting' );
-	add_filter( 'manage_edit-page_sortable_columns', 'fks_stc_add_tc_table_sorting' );
-
-	// Sort values.
+	// Sort values by request.
 	add_filter( 'request', 'fks_stc_tc_column_sort' );
 
-	// Update tag count value on save.
-	add_action( 'save_post', 'fks_stc_update_post_tc_value' );
-
 	// Add custom styles.
-	add_action( 'admin_head', 'fks_stc_styles' );
+	add_action( 'admin_enqueue_scripts', 'fks_stc_add_styles' );
 }
 
 /**
- * Add Tag Count column to post type
+ * Add Tag Count column to post type.
  *
  * @param  array $defaults List of columns.
+ *
  * @return array
  */
 function fks_stc_add_tc_column_table_head( array $defaults ): array {
+	// add our column.
 	$defaults['tag_count'] = __( 'Tag Count', 'sortable-tag-count' );
+
+	// return resulting list of columns.
 	return $defaults;
 }
 
 /**
- * Show tag count for post type
+ * Show tag count for post type.
  *
  * @param string $column_name The column name.
+ * @param int    $post_id The post ID.
  *
  * @return void
  */
-function fks_stc_add_tc_column_table_content( string $column_name ): void {
-	global $post;
-	if ( 'tag_count' === $column_name ) {
-		if ( get_post_meta( $post->ID, FKS_STC_META_FIELD_KEY, true ) ) {
-			echo absint( get_post_meta( $post->ID, FKS_STC_META_FIELD_KEY, true ) );
-		} else {
-			$post_tags = get_the_tags( $post->ID );
-			if ( $post_tags ) {
-				echo count( $post_tags );
-				update_post_meta( $post->ID, FKS_STC_META_FIELD_KEY, count( $post_tags ) );
-			} else {
-				update_post_meta( $post->ID, FKS_STC_META_FIELD_KEY, 0 );
-			}
-		}
+function fks_stc_add_tc_column_table_content( string $column_name, int $post_id ): void {
+	// bail if this is not our column.
+	if ( 'tag_count' !== $column_name ) {
+		return;
 	}
+
+	// show count from db.
+	echo absint( get_post_meta( $post_id, FKS_STC_META_FIELD_KEY, true ) );
 }
 
 /**
- * Make column tag count sortable
+ * Add column count sortable to the cpt-table.
  *
  * @param  array $columns List of columns.
- * @return mixed
+ *
+ * @return array
  */
 function fks_stc_add_tc_table_sorting( array $columns ): array {
+	// add our custom column as sortable column.
 	$columns['tag_count'] = 'tag_count';
+
+	// return all sortable columns.
 	return $columns;
 }
 
 /**
- * Sort values by tag count
+ * Sort values by tag count.
  *
  * @param  array $vars Variables for listings.
+ *
  * @return array
  */
 function fks_stc_tc_column_sort( array $vars ): array {
-	if ( ! empty( $vars['orderby'] ) && "redirect_url" !== $vars['orderby'] ) {
-		$orderby = $vars['orderby'];
-		if ( 'tag_count' === $orderby ) {
-			$meta_query = array(
-				'relation' => 'OR',
-				array(
-					'key'  => FKS_STC_META_FIELD_KEY,
-					'type' => 'NUMERIC',
-				),
-			);
-
-			$vars['meta_query'] = $meta_query;
-			$vars['orderby']    = 'meta_value';
-		}
+	// bail if this is not the backend.
+	if ( ! is_admin() ) {
+		return $vars;
 	}
-	return $vars;
-}
 
-/**
- * Set tag count for post type.
- *
- * @param string $post_type The requested post-type.
- *
- * @return void
- */
-function fks_stc_update_tc_posts( string $post_type ): void {
-	$query   = array(
-		'post_type'      => $post_type,
-		'posts_per_page' => -1,
+	// bail if orderby is not set.
+	if ( empty( $vars['orderby'] ) ) {
+		return $vars;
+	}
+
+	// bail if orderby is not tag_count.
+	if ( 'tag_count' !== $vars['orderby'] ) {
+		return $vars;
+	}
+
+	// set the setting to sort the list by tag count in the request vars.
+	$vars['meta_query'] = array(
+		array(
+			'key'  => FKS_STC_META_FIELD_KEY,
+			'type' => 'NUMERIC',
+		),
 	);
-	$results = new WP_Query( $query );
-	if ( $results->have_posts() ) {
-		while ( $results->have_posts() ) {
-			$results->the_post();
-			$post_tags = get_the_tags( get_the_ID() );
-			if ( $post_tags ) {
-				update_post_meta( get_the_ID(), FKS_STC_META_FIELD_KEY, count( $post_tags ) );
-			} else {
-				update_post_meta( get_the_ID(), FKS_STC_META_FIELD_KEY, '0' );
-			}
-		}
-	}
-	wp_reset_postdata();
-}
 
+	// set to sort query by number.
+	$vars['orderby'] = 'meta_value_num';
 
-/**
- * Update the counter on supported types.
- *
- * @return void
- */
-function fks_stc_update_posts_tc_value(): void {
-	if ( false === (bool) get_option( FKS_STC_OPTION_FIELD_KEY ) ) {
-		// Posts.
-		fks_stc_update_tc_posts( 'post' );
-		// Pages.
-		fks_stc_update_tc_posts( 'page' );
-		// mark it as initialized.
-		add_option( FKS_STC_OPTION_FIELD_KEY, true );
-	}
+	// return resulting query parameter from request.
+	return $vars;
 }
 
 /**
@@ -204,24 +165,89 @@ function fks_stc_update_posts_tc_value(): void {
  * @return void
  */
 function fks_stc_update_post_tc_value( int $post_id ): void {
-	if ( in_array( get_post_type( $post_id ), array( 'post', 'page' ), true ) ) {
-		$post_tags = get_the_tags( $post_id );
-		if ( $post_tags ) {
-			update_post_meta( $post_id, FKS_STC_META_FIELD_KEY, count( $post_tags ) );
-		} else {
-			update_post_meta( $post_id, FKS_STC_META_FIELD_KEY, 0 );
-		}
+	// get the post tags for given object.
+	$post_tags = get_the_tags( $post_id );
+
+	if ( $post_tags ) {
+		// update counter.
+		update_post_meta( $post_id, FKS_STC_META_FIELD_KEY, count( $post_tags ) );
+	} else {
+		// delete counter.
+		update_post_meta( $post_id, FKS_STC_META_FIELD_KEY, 0 );
 	}
 }
 
 /**
- * Output custom styles.
+ * Update tag counter of all object on globally deletion of single tag.
  *
  * @return void
  */
-function fks_stc_styles(): void {
-	echo '<style>
-           #tag_count { width: 12%; }
-           .tag_count { text-align: center; }
-         </style>';
+function fks_stc_delete_term_tc_value(): void {
+	$query   = array(
+		'post_type'      => 'any',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'meta_query'     => array(
+			array(
+				'key'     => FKS_STC_META_FIELD_KEY,
+				'compare' => 'EXIST',
+			),
+		),
+		'fields'         => 'ids',
+	);
+	$results = new WP_Query( $query );
+	foreach ( $results->posts as $post_id ) {
+		fks_stc_update_post_tc_value( $post_id );
+	}
+}
+
+/**
+ * Return whether the requested object_type is supported by our plugin.
+ *
+ * Hint: we support all post types which supports the post_tax taxonomy.
+ *
+ * @param WP_Post_Type|null $object_type The requested object type.
+ *
+ * @return bool
+ */
+function fks_stc_is_object_type_supported( null|WP_Post_Type $object_type ): bool {
+	// return false if post type is null.
+	if ( is_null( $object_type ) ) {
+		return false;
+	}
+
+	// return whether it is supported.
+	return in_array( $object_type->name, fks_stc_get_supported_post_types(), true );
+}
+
+/**
+ * Return the supported post types for our plugin.
+ *
+ * @return array
+ */
+function fks_stc_get_supported_post_types(): array {
+	$taxonomy   = get_taxonomy( 'post_tag' );
+	$post_types = array();
+	foreach ( get_post_types() as $post_type ) {
+		$post_type_object = get_post_type_object( $post_type );
+		if ( $post_type_object instanceof WP_Post_Type && in_array( $post_type_object->name, $taxonomy->object_type, true ) ) {
+			$post_types[] = $post_type;
+		}
+	}
+	return $post_types;
+}
+
+/**
+ * Add plugin styles.
+ *
+ * @return void
+ */
+function fks_stc_add_styles(): void {
+	// admin-specific styles.
+	wp_enqueue_style(
+		'sortable-tag-count-admin',
+		plugins_url( '/style.css', __FILE__ ),
+		array(),
+		filemtime( plugin_dir_path( __FILE__ ) . '/style.css' ),
+	);
 }

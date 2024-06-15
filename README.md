@@ -29,3 +29,17 @@ Donate link: https://www.paypal.me/ThomasKujawa
 ### Does this plugin work with PHP 8?
 
 Yes, it's actively tested and working up to PHP 8.3.
+
+## Check for WordPress Coding Standards
+
+### Initialize
+
+`composer install`
+
+### Run
+
+`vendor/bin/phpcs --standard=ruleset.xml file`
+
+### Repair
+
+`vendor/bin/phpcbf --standard=ruleset.xml file`
