@@ -1,0 +1,9 @@
+/.github
+/.idea
+/nbproject
+/node_modules
+composer.json
+README.md
+.distignore
+.gitignore
+ruleset.xml
