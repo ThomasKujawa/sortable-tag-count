@@ -49,3 +49,9 @@ wp-config.php
 
 #Netbeans
 /nbproject/private/
+
+#SVN
+/1.0.0
+/1.0.1
+/1.0.2
+/1.1.0

@@ -3,8 +3,10 @@
  * Plugin Name: Sortable Tag Count
  * Plugin URI: https://www.fachkraeftesicherer.de
  * Description: Adds a sortable column to the posts and pages admin with the tag count.
- * Author: Thomas Kujawa,Thomas Zwirner
+ * Author: Thomas Kujawa, Thomas Zwirner
  * Author URI: https://thomas.fachkraeftesicherer.de
+ * Requires PHP: 8.0
+ * Domain Path: /languages
  * License: GPL v3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
  * Version: 1.1.0
