@@ -1,17 +1,5 @@
 # Sortable-Tag-Count
 
-Stable tag: 1.1.0
-
-Tested up to: 6.5.2
-
-License: GPL v3
-
-Tags: tags, sortable column, backend
-
-Contributors: thomaskujawa, threadi
-
-Donate link: https://www.paypal.me/ThomasKujawa
-
 ## Why?
 
 In one project, we had assigned several hundred keywords. In an SEO audit, we were advised to minimize the number of keywords. Deleting the keywords was of course no problem. Redirecting the now missing archive pages was also straightforward. However, I was now faced with the problem of which of the several blog posts now had none, one or x keywords. I couldn't find a solution or a code snippet anywhere.
@@ -26,9 +14,9 @@ The plugin adds a new, sortable column to the overview of pages and posts in the
 
 Activate the plugin. The column is displayed. Click on the column header to change the sorting.
 
-### Accessibility Statement
+### Playground:
 
-## Screenshots
+Click [here](https://playground.wordpress.net/?mode=seamless#{%22landingPage%22:%22/wp-admin/edit.php%22,%22preferredVersions%22:{%22php%22:%228.2%22,%22wp%22:%22latest%22},%22features%22:{%22networking%22:true},%22steps%22:[{%22step%22:%22login%22,%22username%22:%22admin%22,%22password%22:%22password%22},{%22step%22:%22installPlugin%22,%22pluginZipFile%22:{%22resource%22:%22wordpress.org/plugins%22,%22slug%22:%22sortable-tag-count%22},%22options%22:{%22activate%22:true}}]}) to start the plugin in playground.
 
 ## Frequently Asked Questions
 
@@ -44,8 +32,8 @@ Yes, it's actively tested and working up to PHP 8.3.
 
 ### Run
 
-`vendor/bin/phpcs --standard=ruleset.xml file`
+`vendor/bin/phpcs --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`
 
 ### Repair
 
-`vendor/bin/phpcbf --standard=ruleset.xml file`
+`vendor/bin/phpcbf --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`

@@ -28,15 +28,11 @@ $query   = array(
 	'post_type'      => 'any',
 	'post_status'    => 'any',
 	'posts_per_page' => -1,
-	'meta_query'     => array(
-		array(
-			'key'     => FKS_STC_META_FIELD_KEY,
-			'compare' => 'EXIST',
-		),
-	),
 	'fields'         => 'ids',
 );
 $results = new WP_Query( $query );
 foreach ( $results->posts as $my_post_id ) {
-	delete_post_meta( $my_post_id, FKS_STC_META_FIELD_KEY );
+    if( metadata_exists( 'post', $my_post_id, FKS_STC_META_FIELD_KEY ) ) {
+        delete_post_meta($my_post_id, FKS_STC_META_FIELD_KEY);
+    }
 }
