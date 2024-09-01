@@ -61,10 +61,57 @@ function fks_stc_sortable_tag_count_init(): void {
 	}
 
 	// Sort values by request.
-	add_filter( 'request', 'fks_stc_tc_column_sort' );
+	add_filter( 'posts_results', 'fks_stc_tc_column_sort', 10, 2 );
 
 	// Add custom styles.
 	add_action( 'admin_enqueue_scripts', 'fks_stc_add_styles' );
+}
+
+/**
+ * Sort the resulting posts by its tag_count.
+ *
+ * @param array    $posts List of posts.
+ * @param WP_Query $query The query object.
+ * @return array
+ */
+function fks_stc_tc_column_sort( array $posts, WP_Query $query ): array {
+	// bail if this is not the backend.
+	if ( ! is_admin() ) {
+		return $posts;
+	}
+
+	// bail if this is not the main query.
+	if ( ! $query->is_main_query() ) {
+		return $posts;
+	}
+
+	// bail if this is not a posts query.
+	if ( 'post' !== $query->get( 'post_type' ) ) {
+		return $posts;
+	}
+
+	// bail if sort is not by tag_count.
+	if ( 'tag_count' !== $query->get( 'orderby' ) ) {
+		return $posts;
+	}
+
+	// order the resulting posts by tag_count depending on sort direction.
+	if ( 'DESC' === $query->get( 'order' ) ) {
+		usort(
+			$posts,
+			function ( $a, $b ) {
+				return absint( get_post_meta( $a->ID, FKS_STC_META_FIELD_KEY, true ) ) < absint( get_post_meta( $b->ID, FKS_STC_META_FIELD_KEY, true ) );
+			}
+		);
+	} else {
+		usort(
+			$posts,
+			function ( $a, $b ) {
+				return absint( get_post_meta( $a->ID, FKS_STC_META_FIELD_KEY, true ) ) > absint( get_post_meta( $b->ID, FKS_STC_META_FIELD_KEY, true ) );
+			}
+		);
+	}
+	return $posts;
 }
 
 /**
@@ -116,44 +163,6 @@ function fks_stc_add_tc_table_sorting( array $columns ): array {
 }
 
 /**
- * Sort values by tag count.
- *
- * @param  array $vars Variables for listings.
- *
- * @return array
- */
-function fks_stc_tc_column_sort( array $vars ): array {
-	// bail if this is not the backend.
-	if ( ! is_admin() ) {
-		return $vars;
-	}
-
-	// bail if orderby is not set.
-	if ( empty( $vars['orderby'] ) ) {
-		return $vars;
-	}
-
-	// bail if orderby is not tag_count.
-	if ( 'tag_count' !== $vars['orderby'] ) {
-		return $vars;
-	}
-
-	// set the setting to sort the list by tag count in the request vars.
-	$vars['meta_query'] = array(
-		array(
-			'key'  => FKS_STC_META_FIELD_KEY,
-			'type' => 'NUMERIC',
-		),
-	);
-
-	// set to sort query by number.
-	$vars['orderby'] = 'meta_value_num';
-
-	// return resulting query parameter from request.
-	return $vars;
-}
-
-/**
  * Update tag count on save for supported post-types.
  *
  * @param int $post_id ID of the updates post.
@@ -183,17 +192,13 @@ function fks_stc_delete_term_tc_value(): void {
 		'post_type'      => 'any',
 		'post_status'    => 'any',
 		'posts_per_page' => -1,
-		'meta_query'     => array(
-			array(
-				'key'     => FKS_STC_META_FIELD_KEY,
-				'compare' => 'EXIST',
-			),
-		),
 		'fields'         => 'ids',
 	);
 	$results = new WP_Query( $query );
 	foreach ( $results->posts as $post_id ) {
-		fks_stc_update_post_tc_value( $post_id );
+        if( metadata_exists( 'post', $post_id, FKS_STC_META_FIELD_KEY ) ) {
+            fks_stc_update_post_tc_value($post_id);
+        }
 	}
 }
 

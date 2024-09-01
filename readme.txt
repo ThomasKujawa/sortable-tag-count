@@ -19,6 +19,7 @@ This plugin adds a sortable column is added to the admin overview of posts and p
 == Changelog ==
 
 = 1.1.1 =
+* Optimized database statements
 * Optimized column width
 * Fixed tested up to value
 
