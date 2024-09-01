@@ -1,17 +1,5 @@
 # Sortable-Tag-Count
 
-Stable tag: 1.1.0
-
-Tested up to: 6.5.2
-
-License: GPL v3
-
-Tags: tags, sortable column, backend
-
-Contributors: thomaskujawa, threadi
-
-Donate link: https://www.paypal.me/ThomasKujawa
-
 ## Why?
 
 In one project, we had assigned several hundred keywords. In an SEO audit, we were advised to minimize the number of keywords. Deleting the keywords was of course no problem. Redirecting the now missing archive pages was also straightforward. However, I was now faced with the problem of which of the several blog posts now had none, one or x keywords. I couldn't find a solution or a code snippet anywhere.
@@ -44,8 +32,8 @@ Yes, it's actively tested and working up to PHP 8.3.
 
 ### Run
 
-`vendor/bin/phpcs --standard=ruleset.xml file`
+`vendor/bin/phpcs --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`
 
 ### Repair
 
-`vendor/bin/phpcbf --standard=ruleset.xml file`
+`vendor/bin/phpcbf --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`

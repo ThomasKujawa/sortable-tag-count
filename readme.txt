@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 8.0
 License: GPL-3.0
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 
 This plugin adds a sortable column is added to the admin overview of posts and pages. This contains the number of tags assigned in each case.
 
@@ -17,6 +17,10 @@ This plugin adds a sortable column is added to the admin overview of posts and p
 3. Go to Posts to show the list of posts where the tag counter is visible.
 
 == Changelog ==
+
+= 1.1.1 =
+* Optimized column width
+* Fixed tested up to value
 
 = 1.1.0 =
 * Optimized handling of saved counting value

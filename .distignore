@@ -3,6 +3,7 @@
 /.idea
 /nbproject
 /node_modules
+/vendor
 composer.json
 README.md
 .distignore
