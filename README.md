@@ -14,9 +14,9 @@ The plugin adds a new, sortable column to the overview of pages and posts in the
 
 Activate the plugin. The column is displayed. Click on the column header to change the sorting.
 
-### Accessibility Statement
+### Playground:
 
-## Screenshots
+Click [here](https://playground.wordpress.net/?mode=seamless#{%22landingPage%22:%22/wp-admin/edit.php%22,%22preferredVersions%22:{%22php%22:%228.2%22,%22wp%22:%22latest%22},%22features%22:{%22networking%22:true},%22steps%22:[{%22step%22:%22login%22,%22username%22:%22admin%22,%22password%22:%22password%22},{%22step%22:%22installPlugin%22,%22pluginZipFile%22:{%22resource%22:%22wordpress.org/plugins%22,%22slug%22:%22sortable-tag-count%22},%22options%22:{%22activate%22:true}}]}) to start the plugin in playground.
 
 ## Frequently Asked Questions
 
