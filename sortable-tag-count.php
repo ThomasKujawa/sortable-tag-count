@@ -196,9 +196,9 @@ function fks_stc_delete_term_tc_value(): void {
 	);
 	$results = new WP_Query( $query );
 	foreach ( $results->posts as $post_id ) {
-        if( metadata_exists( 'post', $post_id, FKS_STC_META_FIELD_KEY ) ) {
-            fks_stc_update_post_tc_value($post_id);
-        }
+		if ( metadata_exists( 'post', $post_id, FKS_STC_META_FIELD_KEY ) ) {
+			fks_stc_update_post_tc_value( $post_id );
+		}
 	}
 }
 
