@@ -6,7 +6,7 @@ Tested up to: 6.8
 Requires PHP: 8.0
 License: GPL-3.0
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-Stable tag: 1.1.1
+Stable tag: @@VersionNumber@@
 
 This plugin adds a sortable column is added to the admin overview of posts and pages. This contains the number of tags assigned in each case.
 
