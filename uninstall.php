@@ -32,7 +32,7 @@ $query   = array(
 );
 $results = new WP_Query( $query );
 foreach ( $results->posts as $my_post_id ) {
-    if( metadata_exists( 'post', $my_post_id, FKS_STC_META_FIELD_KEY ) ) {
-        delete_post_meta($my_post_id, FKS_STC_META_FIELD_KEY);
-    }
+	if ( metadata_exists( 'post', $my_post_id, FKS_STC_META_FIELD_KEY ) ) {
+		delete_post_meta( $my_post_id, FKS_STC_META_FIELD_KEY );
+	}
 }
