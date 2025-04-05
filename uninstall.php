@@ -19,7 +19,7 @@ if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
 }
 
 /**
- * Define variable.
+ * Define a constant.
  */
 const FKS_STC_META_FIELD_KEY = 'fks_stc_meta_tag_count';
 
