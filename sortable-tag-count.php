@@ -8,7 +8,7 @@
  * Requires at least: 6.0
  * License: GPL v3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
- * Version: 1.1.1
+ * Version: @@VersionNumber@@
  * Requires PHP: 8.0
  * Text Domain: sortable-tag-count
  *
