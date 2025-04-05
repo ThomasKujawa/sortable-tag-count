@@ -1,12 +1,13 @@
 {
     "name": "threadi/sortable-tag-count",
+    "version": "1.0.0",
     "scripts": {
-        "post-install-cmd": [
-            "\"vendor/bin/phpcs\" --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra"
-        ],
-        "post-update-cmd": [
-            "\"vendor/bin/phpcs\" --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra"
-        ]
+      "post-install-cmd": [
+        "\"vendor/bin/phpcs\" --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra,vendor/sirbrillig/phpcs-variable-analysis,vendor/automattic/vipwpcs"
+      ],
+      "post-update-cmd": [
+        "\"vendor/bin/phpcs\" --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra,vendor/sirbrillig/phpcs-variable-analysis,vendor/automattic/vipwpcs"
+      ]
     },
 	"require": {
 		"php": "^8.0"
@@ -17,6 +18,7 @@
         }
     },
 	"require-dev": {
-		"wp-coding-standards/wpcs": "^3.1.0"
+        "wp-coding-standards/wpcs": "^3.1.0",
+        "automattic/vipwpcs": "^3.0"
 	}
 }
