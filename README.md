@@ -18,6 +18,21 @@ Activate the plugin. The column is displayed. Click on the column header to chan
 
 Click [here](https://playground.wordpress.net/?mode=seamless#{%22landingPage%22:%22/wp-admin/edit.php%22,%22preferredVersions%22:{%22php%22:%228.2%22,%22wp%22:%22latest%22},%22features%22:{%22networking%22:true},%22steps%22:[{%22step%22:%22login%22,%22username%22:%22admin%22,%22password%22:%22password%22},{%22step%22:%22installPlugin%22,%22pluginZipFile%22:{%22resource%22:%22wordpress.org/plugins%22,%22slug%22:%22sortable-tag-count%22},%22options%22:{%22activate%22:true}}]}) to start the plugin in playground.
 
+## WP-CLI
+
+After activation, the tag counts are calculated in the background via WP-Cron. On large sites or if WP-Cron is disabled, you can run the calculation directly:
+
+```bash
+# Recalculate all tag counts of the current site
+wp sortable-tag-count recalculate
+
+# Recalculate all sites of a multisite network with 500 entries per batch
+wp sortable-tag-count recalculate --network --batch-size=500
+
+# Show the state of the background calculation
+wp sortable-tag-count status --network
+```
+
 ## Frequently Asked Questions
 
 ### Does this plugin work with PHP 8?
