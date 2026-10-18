@@ -24,10 +24,27 @@ defined( 'ABSPATH' ) || exit;
 const FKS_STC_META_FIELD_KEY = 'fks_stc_meta_tag_count';
 
 /**
+ * Name of the option which holds the state of the background calculation.
+ */
+const FKS_STC_CALCULATION_OPTION = 'fks_stc_calculation';
+
+/**
+ * Name of the cron hook which runs the background calculation.
+ */
+const FKS_STC_CALCULATION_HOOK = 'fks_stc_calculate_batch';
+
+// load WP-CLI command.
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once __DIR__ . '/inc/class-fks-stc-cli-command.php';
+	WP_CLI::add_command( 'sortable-tag-count', 'FKS_STC_CLI_Command' );
+}
+
+/**
  * Run on plugin activation.
  *
- * Calculates the tag count for all existing objects. On network activation
- * this is done for every site of the multisite network.
+ * Does not calculate the tag counts directly, as this could lead to a timeout
+ * on large sites. Instead, the calculation is scheduled to run in the background.
+ * On network activation this is done for every site of the multisite network.
  *
  * @param bool $network_wide Whether the plugin is activated network-wide.
  *
@@ -35,16 +52,78 @@ const FKS_STC_META_FIELD_KEY = 'fks_stc_meta_tag_count';
  */
 function fks_stc_sortable_tag_count_activation( bool $network_wide = false ): void {
 	if ( is_multisite() && $network_wide ) {
-		foreach ( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) {
+		foreach ( get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) as $site_id ) {
 			switch_to_blog( $site_id );
-			fks_stc_calculate_all_tc_values();
+			fks_stc_start_calculation();
 			restore_current_blog();
 		}
 		return;
 	}
-	fks_stc_calculate_all_tc_values();
+	fks_stc_start_calculation();
 }
 register_activation_hook( __FILE__, 'fks_stc_sortable_tag_count_activation' );
+
+/**
+ * Run on plugin deactivation.
+ *
+ * Removes scheduled background calculations. The current state is kept, so the
+ * calculation will be restarted on the next activation.
+ *
+ * @param bool $network_wide Whether the plugin is deactivated network-wide.
+ *
+ * @return void
+ */
+function fks_stc_sortable_tag_count_deactivation( bool $network_wide = false ): void {
+	if ( is_multisite() && $network_wide ) {
+		foreach ( get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) as $site_id ) {
+			switch_to_blog( $site_id );
+			wp_clear_scheduled_hook( FKS_STC_CALCULATION_HOOK );
+			restore_current_blog();
+		}
+		return;
+	}
+	wp_clear_scheduled_hook( FKS_STC_CALCULATION_HOOK );
+}
+register_deactivation_hook( __FILE__, 'fks_stc_sortable_tag_count_deactivation' );
+
+/**
+ * Schedule the background calculation for new sites if the plugin is network-activated.
+ *
+ * @param WP_Site $new_site The new site.
+ *
+ * @return void
+ */
+function fks_stc_on_initialize_site( WP_Site $new_site ): void {
+	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	// bail if plugin is not network-activated.
+	if ( ! is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
+		return;
+	}
+
+	switch_to_blog( (int) $new_site->blog_id );
+	fks_stc_start_calculation();
+	restore_current_blog();
+}
+add_action( 'wp_initialize_site', 'fks_stc_on_initialize_site', 200 );
+
+// run the background calculation via WP-Cron.
+add_action( FKS_STC_CALCULATION_HOOK, 'fks_stc_run_calculation' );
+
+// show the progress of the background calculation.
+add_action( 'admin_notices', 'fks_stc_show_calculation_notice' );
 
 /**
  * Initialize the plugin after all post types and taxonomies are registered.
@@ -273,22 +352,219 @@ function fks_stc_update_post_tc_value( int $post_id ): void {
 }
 
 /**
- * Calculate the tag count for all objects of supported post types on the current site.
+ * Start the background calculation of all tag counts on the current site.
  *
  * @return void
  */
-function fks_stc_calculate_all_tc_values(): void {
-	$query   = array(
-		'post_type'      => fks_stc_get_supported_post_types(),
-		'post_status'    => 'any',
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-		'no_found_rows'  => true,
+function fks_stc_start_calculation(): void {
+	update_option(
+		FKS_STC_CALCULATION_OPTION,
+		array(
+			'last_id' => 0,
+			'done'    => 0,
+			'total'   => null,
+			'started' => time(),
+		),
+		false
 	);
-	$results = new WP_Query( $query );
-	foreach ( $results->posts as $post_id ) {
+	wp_clear_scheduled_hook( FKS_STC_CALCULATION_HOOK );
+	wp_schedule_single_event( time(), FKS_STC_CALCULATION_HOOK );
+}
+
+/**
+ * Return the state of the background calculation on the current site.
+ *
+ * @return array|null The state or null if no calculation is pending.
+ */
+function fks_stc_get_calculation_state(): ?array {
+	$state = get_option( FKS_STC_CALCULATION_OPTION );
+	return is_array( $state ) ? $state : null;
+}
+
+/**
+ * Finish the background calculation on the current site.
+ *
+ * @return void
+ */
+function fks_stc_finish_calculation(): void {
+	delete_option( FKS_STC_CALCULATION_OPTION );
+	wp_clear_scheduled_hook( FKS_STC_CALCULATION_HOOK );
+}
+
+/**
+ * Return the number of objects to process per batch.
+ *
+ * @return int
+ */
+function fks_stc_get_batch_size(): int {
+	/**
+	 * Filter the number of objects which are processed per batch.
+	 *
+	 * @param int $batch_size The batch size.
+	 */
+	return max( 1, absint( apply_filters( 'fks_stc_batch_size', 100 ) ) );
+}
+
+/**
+ * Return the IDs of objects of supported post types with an ID greater than the given ID.
+ *
+ * Uses the ID as cursor instead of an offset, so the query stays fast on large tables
+ * and objects added during the calculation are not skipped.
+ *
+ * @param int $last_id The last processed ID.
+ * @param int $limit   The maximum number of IDs.
+ *
+ * @return int[]
+ */
+function fks_stc_get_object_ids( int $last_id, int $limit ): array {
+	global $wpdb;
+
+	$post_types = fks_stc_get_supported_post_types();
+	if ( empty( $post_types ) ) {
+		return array();
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT ID FROM {$wpdb->posts} WHERE ID > %d AND post_status != 'auto-draft' AND post_type IN (" . implode( ',', array_fill( 0, count( $post_types ), '%s' ) ) . ') ORDER BY ID ASC LIMIT %d', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			array_merge( array( $last_id ), $post_types, array( $limit ) )
+		)
+	);
+
+	return array_map( 'absint', $ids );
+}
+
+/**
+ * Return the number of objects of supported post types.
+ *
+ * @return int
+ */
+function fks_stc_count_objects(): int {
+	global $wpdb;
+
+	$post_types = fks_stc_get_supported_post_types();
+	if ( empty( $post_types ) ) {
+		return 0;
+	}
+
+	return absint(
+		$wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status != 'auto-draft' AND post_type IN (" . implode( ',', array_fill( 0, count( $post_types ), '%s' ) ) . ')', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				$post_types
+			)
+		)
+	);
+}
+
+/**
+ * Process the next batch of the background calculation on the current site.
+ *
+ * @return bool True if more objects are waiting, false if the calculation is finished.
+ */
+function fks_stc_process_batch(): bool {
+	$state = fks_stc_get_calculation_state();
+
+	// bail if no calculation is pending.
+	if ( is_null( $state ) ) {
+		return false;
+	}
+
+	// calculate total on first run (in the context of the site, so all post types are registered).
+	if ( is_null( $state['total'] ) ) {
+		$state['total'] = fks_stc_count_objects();
+	}
+
+	// get and process the next objects.
+	$batch_size = fks_stc_get_batch_size();
+	$ids        = fks_stc_get_object_ids( absint( $state['last_id'] ), $batch_size );
+	foreach ( $ids as $post_id ) {
 		fks_stc_update_post_tc_value( $post_id );
 	}
+
+	// finish if this was the last batch.
+	if ( count( $ids ) < $batch_size ) {
+		fks_stc_finish_calculation();
+		return false;
+	}
+
+	// save the progress.
+	$state['last_id'] = end( $ids );
+	$state['done']    = absint( $state['done'] ) + count( $ids );
+	update_option( FKS_STC_CALCULATION_OPTION, $state, false );
+
+	return true;
+}
+
+/**
+ * Run the background calculation via WP-Cron.
+ *
+ * Processes batches until the time limit is reached and schedules the next run
+ * if more objects are waiting.
+ *
+ * @return void
+ */
+function fks_stc_run_calculation(): void {
+	/**
+	 * Filter the maximum number of seconds per WP-Cron run.
+	 *
+	 * @param int $time_limit The time limit in seconds.
+	 */
+	$time_limit = max( 1, absint( apply_filters( 'fks_stc_cron_time_limit', 20 ) ) );
+	$start      = microtime( true );
+
+	do {
+		$more = fks_stc_process_batch();
+	} while ( $more && ( microtime( true ) - $start ) < $time_limit );
+
+	// schedule the next run.
+	if ( $more && ! wp_next_scheduled( FKS_STC_CALCULATION_HOOK ) ) {
+		wp_schedule_single_event( time(), FKS_STC_CALCULATION_HOOK );
+	}
+}
+
+/**
+ * Show the progress of the background calculation in the backend.
+ *
+ * @return void
+ */
+function fks_stc_show_calculation_notice(): void {
+	// bail if user is not allowed to edit posts.
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		return;
+	}
+
+	// bail if this is not the dashboard, the plugin list or a list view.
+	$screen = get_current_screen();
+	if ( ! $screen instanceof WP_Screen || ! in_array( $screen->base, array( 'dashboard', 'plugins', 'edit' ), true ) ) {
+		return;
+	}
+
+	// bail if no calculation is pending.
+	$state = fks_stc_get_calculation_state();
+	if ( is_null( $state ) ) {
+		return;
+	}
+
+	// create the message.
+	if ( is_null( $state['total'] ) ) {
+		$message = __( 'Sortable Tag Count is calculating the tag counts in the background. Sorting by tag count may be incomplete until then.', 'sortable-tag-count' );
+	} else {
+		$message = sprintf(
+			/* translators: 1: number of processed entries, 2: total number of entries */
+			__( 'Sortable Tag Count is calculating the tag counts in the background: %1$s of %2$s entries done. Sorting by tag count may be incomplete until then.', 'sortable-tag-count' ),
+			number_format_i18n( min( absint( $state['done'] ), absint( $state['total'] ) ) ),
+			number_format_i18n( absint( $state['total'] ) )
+		);
+	}
+
+	// add hint if WP-Cron is disabled.
+	if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
+		$message .= ' ' . __( 'WP-Cron is disabled on this site. Please make sure a system cron job runs wp-cron.php or run "wp sortable-tag-count recalculate".', 'sortable-tag-count' );
+	}
+
+	printf( '<div class="notice notice-info"><p>%s</p></div>', esc_html( $message ) );
 }
 
 /**
