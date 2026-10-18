@@ -1,5 +1,6 @@
 {
     "name": "threadi/sortable-tag-count",
+    "description": "Adds a sortable tag-count column to WordPress admin post and page lists.",
     "version": "1.2.0",
 	"require": {
 		"php": "^8.0"
