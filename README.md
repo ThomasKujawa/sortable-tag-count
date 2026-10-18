@@ -47,11 +47,11 @@ Yes, it's actively tested and working up to PHP 8.3.
 
 ### Run
 
-`vendor/bin/phpcs --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`
+`vendor/bin/phpcs .`
 
 ### Repair
 
-`vendor/bin/phpcbf --extensions=php --ignore=*/assets/*,*/vendor/* --standard=ruleset.xml .`
+`vendor/bin/phpcbf .`
 
 ## Check for WordPress VIP Coding Standards
 
